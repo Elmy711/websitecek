@@ -12,6 +12,8 @@ def format_status(http_status):
         return f"{Fore.RED}{http_status}{Style.RESET_ALL}"  # Merah untuk error
     elif http_status == "N/A":
         return f"{Fore.YELLOW}{http_status}{Style.RESET_ALL}"  # Kuning untuk tidak tersedia
+    elif http_status is None:
+        return f"{Fore.RED}None{Style.RESET_ALL}"  # Merah untuk None
     return f"{Fore.CYAN}{http_status}{Style.RESET_ALL}"  # Default untuk status lainnya
 
 # Fungsi untuk melakukan pengecekan host menggunakan Check Host API
@@ -56,8 +58,8 @@ def check_host_http(target_url):
                 if result:
                     country_code = node.split(".")[0]
                     location = node
-                    http_status = result[3] if len(result) > 3 else "N/A"
-                    target_ip = result[4] if len(result) > 4 else "N/A"
+                    http_status = result[3] if len(result) > 3 and result[3] is not None else "N/A"
+                    target_ip = result[4] if len(result) > 4 and result[4] is not None else "N/A"
                     # Menambahkan hasil ke tabel dengan warna pada HTTP Status
                     table.add_row([country_code, location, format_status(http_status), target_ip])
         print(table)
