@@ -51,7 +51,7 @@ def check_host_http(target_url):
         results_data = results_response.json()
         # Menampilkan hasil dalam tabel
         table = PrettyTable()
-        table.field_names = ["Kode Negara", "Lokasi Node", "Status HTTP", "IP Target"]
+        table.field_names = ["IP Target", "Status HTTP", "Nama Negara", "Lokasi Node"]
         for node, result_list in results_data.items():
             if result_list and isinstance(result_list, list) and len(result_list) > 0:
                 result = result_list[0]  # Menggunakan hasil pertama untuk kesederhanaan
@@ -61,7 +61,7 @@ def check_host_http(target_url):
                     http_status = result[3] if len(result) > 3 and result[3] is not None else "N/A"
                     target_ip = result[4] if len(result) > 4 and result[4] is not None else "N/A"
                     # Menambahkan hasil ke tabel dengan warna pada HTTP Status
-                    table.add_row([country_code, location, format_status(http_status), target_ip])
+                    table.add_row([target_ip, format_status(http_status), country_code.upper(), location])
         print(table)
     except requests.exceptions.RequestException as e:
         print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
@@ -71,8 +71,8 @@ def check_host_http(target_url):
 # Fungsi utama
 if __name__ == "__main__":
     print(f"{Fore.CYAN}Check Host HTTP Checker{Style.RESET_ALL}")
-    target_url = input("Masukkan URL untuk diperiksa (contoh: https://gabut.com): ").strip()
+    target_url = input("Masukkan URL ( https://example.com): ").strip()
     if target_url:
         check_host_http(target_url)
     else:
-        print(f"{Fore.RED}Error: Harap masukkan URL yang valid.{Style.RESET_ALL}")
+        print(f"{Fore.RED}Error: Masukkan URL yang valid.{Style.RESET_ALL}")
