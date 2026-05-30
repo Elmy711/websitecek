@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPA Checkhost</title>
+    <style>
+        :root { font-family: system-ui, sans-serif; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: clamp(1rem, 4vw, 2.5rem);
+            min-height: 100vh;
+            background:
+                linear-gradient(rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.88)),
+                url("logo.jpg") center/cover no-repeat fixed;
+            color: #e2e8f0;
+        }
+        .layout {
+            width: min(960px, 100%);
+            margin: 0 auto;
+        }
+        .card {
+            background: rgba(15, 23, 42, 0.82);
+            border: 1px solid rgba(51, 65, 85, 0.6);
+            border-radius: 16px;
+            padding: clamp(1.25rem, 5vw, 2.25rem);
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(14px);
+        }
+        .brand {
+            display: flex;
+            justify-content: center;
+            margin-bottom: clamp(1rem, 4vw, 2rem);
+        }
+        .brand img {
+            width: clamp(140px, 32vw, 260px);
+            height: auto;
+            max-width: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.55));
+        }
+        h1 {
+            margin: 0 0 1rem;
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            font-weight: 700;
+            text-align: center;
+        }
+        form {
+            display: flex;
+            gap: 0.6rem;
+            margin-bottom: 1.25rem;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 0.65rem 0.75rem;
+            font-size: 1rem;
+            background: #1f2937;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            border-radius: 6px;
+        }
+        input[type="text"]::placeholder { color: #94a3b8; }
+        button {
+            padding: 0.65rem 1.4rem;
+            font-size: 1rem;
+            cursor: pointer;
+            background: #2563eb;
+            color: #f8fafc;
+            border: none;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+        button:hover { background: #1d4ed8; }
+        #status { margin-bottom: 1rem; font-weight: 600; min-height: 1.2rem; }
+        .permalink { margin-top: 0.5rem; font-size: 0.95rem; }
+        .permalink a { color: #60a5fa; text-decoration: none; }
+        .permalink a:hover { text-decoration: underline; }
+        .table-wrapper {
+            margin-top: 0.75rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow-x: auto;
+            background: rgba(15, 23, 42, 0.68);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 520px;
+            background: rgba(30, 41, 59, 0.9);
+            color: #e2e8f0;
+        }
+        th, td {
+            border-bottom: 1px solid #334155;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background: #111827;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.85rem;
+        }
+        tr:nth-child(even) { background: #1a2233; }
+        .status-200 { color: #4ade80; font-weight: 600; }
+        .status-error { color: #f87171; font-weight: 600; }
+        .status-na { color: #facc15; font-weight: 600; }
+        .status-default { color: #60a5fa; font-weight: 600; }
+        .hidden { display: none; }
+
+        @media (max-width: 768px) {
+            body {
+                padding: clamp(0.75rem, 5vw, 1.5rem);
+            }
+            .card {
+                padding: clamp(1rem, 6vw, 1.75rem);
+                border-radius: 14px;
+            }
+            form {
+                flex-direction: column;
+            }
+            button {
+                width: 100%;
+            }
+            table {
+                min-width: unset;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: clamp(1.6rem, 8vw, 2rem);
+            }
+            th, td {
+                padding: 0.6rem;
+                font-size: 0.85rem;
+            }
+            #status {
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="layout">
+        <section class="card">
+            <div class="brand">
+                <img src="logo.jpg" alt="Cyber People Attack">
+            </div>
+            <h1>Cyber People Attack Checkhost</h1>
+            <form id="checkForm">
+                <input type="text" id="targetInput" placeholder="Masukkan URL (contoh: gabut.com)" required>
+                <button type="submit">Periksa</button>
+            </form>
+            <div id="status"></div>
+            <div id="permalink" class="permalink hidden"></div>
+            <div class="table-wrapper">
+                <table id="resultsTable" class="hidden">
+                    <thead>
+                        <tr>
+                            <th>Nama Negara</th>
+                            <th>Lokasi Node</th>
+                            <th>Status HTTP</th>
+                            <th>IP Target</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const regionDisplay = (() => {
+            if (typeof Intl !== "undefined" && typeof Intl.DisplayNames === "function") {
+                try {
+                    return new Intl.DisplayNames(["id", "en"], { type: "region" });
+                } catch (error) {
+                    console.warn("Intl.DisplayNames gagal diinisialisasi:", error);
+                }
+            }
+            return null;
+        })();
+
+        function resolveCountryName(code) {
+            if (!code) return "Tidak Diketahui";
+            try {
+                const name = regionDisplay ? regionDisplay.of(code) : null;
+                if (name && name !== code) {
+                    return name;
+                }
+            } catch (error) {
+                // Abaikan jika konversi gagal
+            }
+            return code || "Tidak Diketahui";
+        }
+
+        const form = document.getElementById("checkForm");
+        const targetInput = document.getElementById("targetInput");
+        const statusEl = document.getElementById("status");
+        const permalinkEl = document.getElementById("permalink");
+        const table = document.getElementById("resultsTable");
+        const tbody = document.getElementById("resultsBody");
+
+        function formatStatusClass(httpStatus) {
+            if (httpStatus === "200") return "status-200";
+            if (httpStatus === "404" || httpStatus === "500") return "status-error";
+            if (httpStatus === "N/A") return "status-na";
+            return "status-default";
+        }
+
+        function formatStatus(httpStatus) {
+            if (httpStatus === null || httpStatus === undefined || httpStatus === "") return "N/A";
+            return String(httpStatus);
+        }
+
+        function showStatus(message, isError = false) {
+            statusEl.textContent = message;
+            statusEl.style.color = isError ? "#f87171" : "#60a5fa";
+        }
+
+        function resetUI() {
+            showStatus("");
+            permalinkEl.classList.add("hidden");
+            table.classList.add("hidden");
+            tbody.innerHTML = "";
+        }
+
+        async function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const target = targetInput.value.trim();
+
+            if (!target) {
+                showStatus("Harap masukkan URL yang valid.", true);
+                return;
+            }
+
+            resetUI();
+            showStatus("Mengumpulkan data dari node, harap tunggu...");
+
+            try {
+                const params = new URLSearchParams({ host: target, max_nodes: "20" });
+                const startResponse = await fetch(`https://check-host.net/check-http?${params}`, {
+                    headers: { "Accept": "application/json" }
+                });
+
+                if (!startResponse.ok) {
+                    throw new Error(`Gagal memulai pemeriksaan: ${startResponse.status}`);
+                }
+
+                const startData = await startResponse.json();
+                const { request_id: requestId, permanent_link: permanentLink } = startData;
+
+                if (!requestId) {
+                    throw new Error("Gagal mendapatkan request ID.");
+                }
+
+                permalinkEl.innerHTML = `Permanent Link: <a href="${permanentLink}" target="_blank" rel="noopener">${permanentLink}</a>`;
+                permalinkEl.classList.remove("hidden");
+
+                await wait(10000);
+
+                const resultsResponse = await fetch(`https://check-host.net/check-result/${requestId}`, {
+                    headers: { "Accept": "application/json" }
+                });
+
+                if (!resultsResponse.ok) {
+                    throw new Error(`Gagal mengambil hasil: ${resultsResponse.status}`);
+                }
+
+                const resultsData = await resultsResponse.json();
+                const rows = [];
+
+                Object.entries(resultsData).forEach(([node, resultList]) => {
+                    const rawCode = node.split(".")[0] || "";
+                    const countryCode = rawCode.toUpperCase();
+                    const countryName = resolveCountryName(countryCode);
+
+                    let rawStatus = null;
+                    let targetIp = "N/A";
+
+                    if (Array.isArray(resultList) && resultList.length > 0) {
+                        const arrayEntry = resultList.find(item => Array.isArray(item));
+                        if (Array.isArray(arrayEntry)) {
+                            rawStatus = arrayEntry[3];
+                            targetIp = arrayEntry[4] || "N/A";
+                        } else {
+                            const objectEntry = resultList.find(item => item && typeof item === "object");
+                            if (objectEntry) {
+                                rawStatus = objectEntry.status || objectEntry.error || objectEntry.type || null;
+                                targetIp = objectEntry.address || objectEntry.ip || "N/A";
+                            } else {
+                                const stringEntry = resultList.find(item => typeof item === "string");
+                                if (stringEntry) {
+                                    rawStatus = stringEntry;
+                                }
+                            }
+                        }
+                    }
+
+                    const httpStatus = formatStatus(rawStatus);
+                    rows.push({
+                        countryName,
+                        location: node,
+                        httpStatus,
+                        targetIp
+                    });
+                });
+
+                if (!rows.length) {
+                    throw new Error("Tidak ada data hasil yang tersedia.");
+                }
+
+                tbody.innerHTML = "";
+                rows.forEach(({ countryName, location, httpStatus, targetIp }) => {
+                    const tr = document.createElement("tr");
+                    const statusClass = formatStatusClass(httpStatus);
+                    tr.innerHTML = `
+                        <td>${countryName}</td>
+                        <td>${location}</td>
+                        <td class="${statusClass}">${httpStatus}</td>
+                        <td>${targetIp}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                table.classList.remove("hidden");
+                showStatus("Pemeriksaan selesai.");
+            } catch (error) {
+                showStatus(error.message || "Terjadi error yang tidak terduga.", true);
+            }
+        });
+    </script>
+</body>
+</html>
